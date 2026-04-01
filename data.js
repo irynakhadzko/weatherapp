@@ -1,4 +1,72 @@
-// ── Weather conditions ────────────────────────────────────────
+// ── OpenWeather config ────────────────────────────────────────
+const API_KEY  = "cb6cce10f8bd9a687bf0e2dd388f56c2";
+const API_BASE = "https://api.openweathermap.org/data/2.5";
+
+// ── Map OpenWeather condition id → emoji + label ──────────────
+function conditionFromId(id, icon) {
+  const night = icon && icon.endsWith("n");
+  if (id >= 200 && id < 300) return { label: "Thunderstorm",  emoji: "⛈️" };
+  if (id >= 300 && id < 400) return { label: "Drizzle",       emoji: "🌦️" };
+  if (id >= 500 && id < 511) return { label: "Rainy",         emoji: "🌧️" };
+  if (id === 511)             return { label: "Freezing Rain", emoji: "🌨️" };
+  if (id >= 512 && id < 600) return { label: "Heavy Rain",    emoji: "🌧️" };
+  if (id >= 600 && id < 700) return { label: "Snowy",         emoji: "❄️" };
+  if (id >= 700 && id < 800) return { label: "Foggy",         emoji: "🌫️" };
+  if (id === 800)             return { label: night ? "Clear Night" : "Sunny", emoji: night ? "🌙" : "☀️" };
+  if (id === 801 || id === 802) return { label: "Partly Cloudy", emoji: "⛅" };
+  if (id >= 803)              return { label: "Cloudy",        emoji: "☁️" };
+  return { label: "Unknown", emoji: "🌡️" };
+}
+
+function parseEntry(data) {
+  const w    = data.weather[0];
+  const cond = conditionFromId(w.id, w.icon);
+  return {
+    condition: cond.label,
+    emoji:     cond.emoji,
+    temp:      Math.round(data.main.temp),
+    humidity:  data.main.humidity,
+    wind:      Math.round((data.wind?.speed ?? 0) * 3.6), // m/s → km/h
+  };
+}
+
+// ── Fetch today's weather ─────────────────────────────────────
+async function fetchToday(city) {
+  const url = `${API_BASE}/weather?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`weather ${res.status}`);
+  return parseEntry(await res.json());
+}
+
+// ── Fetch tomorrow's weather (5-day/3h forecast → noon entry) ─
+async function fetchTomorrow(city) {
+  const url = `${API_BASE}/forecast?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`forecast ${res.status}`);
+  const json = await res.json();
+
+  const tomorrowNoon = new Date();
+  tomorrowNoon.setDate(tomorrowNoon.getDate() + 1);
+  tomorrowNoon.setHours(12, 0, 0, 0);
+  const target = tomorrowNoon.getTime() / 1000;
+
+  const entry = json.list.reduce((best, item) =>
+    Math.abs(item.dt - target) < Math.abs(best.dt - target) ? item : best
+  );
+  return parseEntry(entry);
+}
+
+// ── Fetch both days for one city (returns null on failure) ────
+async function fetchCityWeather(city) {
+  try {
+    const [today, tomorrow] = await Promise.all([fetchToday(city), fetchTomorrow(city)]);
+    return { today, tomorrow };
+  } catch {
+    return null; // fall back to mock
+  }
+}
+
+// ── Mock fallback (seeded RNG) ────────────────────────────────
 const mockConditions = [
   { label: "Sunny",         emoji: "☀️",  temp_range: [18, 32] },
   { label: "Partly Cloudy", emoji: "⛅",  temp_range: [12, 24] },
@@ -83,6 +151,7 @@ const EUROPE = [
   { country: "Vatican City",         flag: "🇻🇦", cities: ["Vatican City",      "Borgo Pio",          "Trastevere"]      },
 ];
 
+// Build initial dataset using mock data (shown immediately, replaced by live data)
 function buildWeatherData() {
   return EUROPE.map(entry => ({
     country: entry.country,
@@ -92,6 +161,7 @@ function buildWeatherData() {
       isCapital: idx === 0,
       today:     mockWeather(city, 0),
       tomorrow:  mockWeather(city, 1),
+      loading:   true,
     })),
   }));
 }
