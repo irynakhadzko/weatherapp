@@ -9,7 +9,6 @@
   </head>
   <body>
 
-    <!-- ── Header ───────────────────────────────────────────── -->
     <header class="site-header">
       <h1>Weather Report</h1>
       <p class="subtitle">Iryna Khadzko</p>
@@ -22,13 +21,6 @@
       </div>
     </header>
 
-    <!-- ── Live status bar ──────────────────────────────────────── -->
-    <div id="status-bar" class="status-bar" hidden>
-      <span id="status-text">Fetching live weather…</span>
-      <div class="status-track"><div id="status-progress" class="status-fill"></div></div>
-    </div>
-
-    <!-- ── Toolbar ───────────────────────────────────────────── -->
     <div class="toolbar">
       <div class="search-wrap">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -45,13 +37,12 @@
       <span class="count-badge" id="count">46 of 46 countries</span>
     </div>
 
-    <!-- ── Country Grid ──────────────────────────────────────── -->
     <main class="grid" id="grid" aria-live="polite">
       <!-- Rendered by app.js -->
     </main>
 
     <footer>
-      <p>Mock data · No real API · Europe Weather Report</p>
+      <p>Mock data · Europe Weather Report · Iryna Khadzko</p>
     </footer>
 
     <script src="data.js"></script>
